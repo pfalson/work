@@ -11,8 +11,8 @@
         A simple employee directory application
     </description>
  
-    <author href="http://bluefinity.com" email="mike.street@bluefinity.com">
-        Mike Street
+    <author href="http://falson.net" email="peter@falson.net">
+        Peter Falson
     </author>
 
     <preference name="phonegap-version" value="2.9.0" />
