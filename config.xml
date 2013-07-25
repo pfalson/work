@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns       = "http://www.w3.org/ns/widgets"
+        xmlns:gap   = "http://phonegap.com/ns/1.0"
+        id          = "com.bluefinity.employeedirectory"
+        versionCode = "10"
+        version     = "1.1.0">
+ 
+    <name>Employee Directory</name>
+ 
+    <description>
+        A simple employee directory application
+    </description>
+ 
+    <author href="http://bluefinity.com" email="mike.street@bluefinity.com">
+        Mike Street
+    </author>
+
+    <preference name="phonegap-version" value="2.9.0" />
+    <preference name="exit-on-suspend" value="true" />
+ 
+    <feature name="http://api.phonegap.com/1.0/camera"/>
+    <feature name="http://api.phonegap.com/1.0/contacts"/>
+    <feature name="http://api.phonegap.com/1.0/file"/>
+    <feature name="http://api.phonegap.com/1.0/geolocation"/>
+    <feature name="http://api.phonegap.com/1.0/media"/>
+    <feature name="http://api.phonegap.com/1.0/network"/>
+    <feature name="http://api.phonegap.com/1.0/notification"/>
+ 
+</widget>
