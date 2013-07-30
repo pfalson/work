@@ -1,50 +1,232 @@
+<!DOCTYPE HTML>
 <html>
-<head title="Employee Demo">
-<script src="css/source-sans-pro.js"></script>
-<link href="css/styles.css" rel="stylesheet">
-</head>
-<body>
+  <head>
+    <meta name="viewport" content="width=320; user-scalable=no" />
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<script id="home-tpl" type="text/x-handlebars-template">
-    <div class='header'><h1>Home</h1></div>
-    <div class='search-bar'><input class='search-key' type="search"/></div>
-    <div class="scroll"><ul class='employee-list'></ul></div>
-</script>
+    <title>SQLitePlugin test</title>
 
-<script id="employee-li-tpl" type="text/x-handlebars-template">
-    {{#.}}
-    <li><a href="#employees/{{this.id}}">{{this.firstName}} {{this.lastName}}<br/>{{this.title}}</a></li>
-    {{/.}}
-</script>
+    <link rel="stylesheet" href="qunit-1.5.0.css" />
 
-<script id="employee-tpl" type="text/x-handlebars-template">
-    <div class='header'><a href='#' class="button header-button header-button-left">Back</a><h1>Details</h1></div>
-    <div class='details'>
-        <img id='image' src='img/{{firstName}}_{{lastName}}.jpg' style="float:left;margin:10px;"/>
-        <h1>{{firstName}} {{lastName}}</h1>
-        <h2>{{title}}</h2>
-        <span class="location"></span>
-        <ul>
-            <li><a href="tel:{{officePhone}}">Call Office<br/>{{officePhone}}</a></li>
-            <li><a href="tel:{{cellPhone}}">Call Cell<br/>{{cellPhone}}</a></li>
-            <li><a href="sms:{{cellPhone}}">SMS<br/>{{cellPhone}}</a></li>
-            <li><a href="#" class="add-location-btn">Add Location</a></li>
-            <li><a href="#" class="add-contact-btn">Add to Contacts</a></li>
-            <li><a href="#" class="change-pic-btn">Change Picture</a></li>
-        </ul>
-    </div>
-</script>
+    <script type="text/javascript" charset="utf-8" src="lib/cordova-2.7.0.js"></script>
+    <script type="text/javascript" charset="utf-8" src="lib/SQLitePlugin.js"></script>
+    <script type="text/javascript" charset="utf-8" src="lib/qunit-1.12.0.js"></script>
 
-<script src="phonegap.js"></script>
-<script src="lib/jquery-1.8.2.min.js"></script>
-<script src="lib/handlebars.js"></script>
-<script src="lib/iscroll.js"></script>
-<script src="lib/SQLitePlugin.js"></script>
-<script src="js/storage/websql-store.js"></script>
-<script src="js/HomeView.js"></script>
-<script src="js/EmployeeView.js"></script>
-<script src="js/main.js"></script>
+    <script>
 
-</body>
+        document.addEventListener("deviceready", doTest, false);
+
+        function doTest() {
+
+            test("db transaction test", function () {
+
+                var db = window.sqlitePlugin.openDatabase({ name: "Database" });
+
+                ok(!!db, "db object");
+
+                stop(9);
+
+                db.transaction(function (tx) {
+
+                    start(1);
+                    ok(!!tx, "tx object");
+
+                    tx.executeSql('DROP TABLE IF EXISTS test_table');
+                    tx.executeSql('CREATE TABLE IF NOT EXISTS test_table (id integer primary key, data text, data_num integer)');
+
+                    tx.executeSql("INSERT INTO test_table (data, data_num) VALUES (?,?)", ["test", 100], function (tx, res) {
+                        start(1);
+                        ok(!!tx, "tx object");
+                        ok(!!res, "res object");
+
+                        console.log("insertId: " + res.insertId + " -- probably 1");
+                        console.log("rowsAffected: " + res.rowsAffected + " -- should be 1");
+
+                        ok(!!res.insertId, "Valid res.insertId");
+                        // equal(res.rowsAffected, 1, "res rows affected"); // issue with Android version
+
+                        db.transaction(function (tx) {
+                            start(1);
+                            ok(!!tx, "second tx object");
+
+                            tx.executeSql("SELECT count(id) as cnt from test_table;", [], function (tx, res) {
+                                start(1);
+
+                                console.log("res.rows.length: " + res.rows.length + " -- should be 1");
+                                console.log("res.rows.item(0).cnt: " + res.rows.item(0).cnt + " -- should be 1");
+
+                                equal(res.rows.length, 1, "res rows length");
+                                equal(res.rows.item(0).cnt, 1, "select count");
+                            });
+
+                            tx.executeSql("SELECT * from test_table;", [], function (tx, res) {
+                                start(1);
+
+                                equal(res.rows.length, 1, "SELECT res rows length");
+                                equal(res.rows.item(0).data_num, 100, "SELECT res data_num");
+                                equal(res.rows.item(0).data, "test", "SELECT res data");
+                            });
+
+                            tx.executeSql("UPDATE test_table SET data_num = ? WHERE data_num = 100", [101], function (tx, res) {
+                                start(1);
+
+                                console.log("UPDATE rowsAffected: " + res.rowsAffected + " -- should be 1");
+
+                                // equal(res.rowsAffected, 1, "UPDATE res rows affected"); // issue with Android version
+                            });
+
+                            tx.executeSql("SELECT data_num from test_table;", [], function (tx, res) {
+                                start(1);
+
+                                equal(res.rows.length, 1, "SELECT res rows length");
+                                equal(res.rows.item(0).data_num, 101, "SELECT data_num");
+                            });
+
+                            tx.executeSql("DELETE FROM test_table WHERE data LIKE 'tes%'", [], function (tx, res) {
+                                start(1);
+
+                                console.log("DELETE rowsAffected: " + res.rowsAffected + " -- should be 1");
+
+                                // equal(res.rowsAffected, 1, "DELETE res rows affected"); // issue with Android version
+                            });
+
+                            tx.executeSql("SELECT data_num from test_table;", [], function (tx, res) {
+                                start(1);
+
+                                equal(res.rows.length, 0, "SELECT res rows length");
+                            });
+
+                        });
+
+                    }, function (e) {
+                        console.log("ERROR: " + e.message);
+                    });
+                });
+
+            });
+
+            test("nested transaction test", function () {
+
+                var db = window.sqlitePlugin.openDatabase("Database", "1.0", "Demo", -1);
+
+                ok(!!db, "db object");
+
+                stop(3);
+
+                db.transaction(function (tx) {
+
+                    start(1);
+                    ok(!!tx, "tx object");
+
+                    tx.executeSql('DROP TABLE IF EXISTS test_table');
+                    tx.executeSql('CREATE TABLE IF NOT EXISTS test_table (id integer primary key, data text, data_num integer)');
+
+                    tx.executeSql("INSERT INTO test_table (data, data_num) VALUES (?,?)", ["test", 100], function (tx, res) {
+                        start(1);
+
+                        console.log("insertId: " + res.insertId + " -- probably 1");
+                        console.log("rowsAffected: " + res.rowsAffected + " -- should be 1");
+
+                        ok(!!res.insertId, "Valid res.insertId");
+                        // equal(res.rowsAffected, 1, "res rows affected"); // issue with Android version
+
+                        tx.executeSql("select count(id) as cnt from test_table;", [], function (tx, res) {
+                            start(1);
+
+                            console.log("res.rows.length: " + res.rows.length + " -- should be 1");
+                            console.log("res.rows.item(0).cnt: " + res.rows.item(0).cnt + " -- should be 1");
+
+                            equal(res.rows.length, 1, "res rows length");
+                            equal(res.rows.item(0).cnt, 1, "select count");
+
+                        });
+
+                    });
+
+                });
+
+            });
+
+            function withTestTable(func) {
+                stop();
+
+                var db = window.sqlitePlugin.openDatabase({ name: "Database" });
+
+                db.transaction(function (tx) {
+                    tx.executeSql('DROP TABLE IF EXISTS test_table');
+                    tx.executeSql('CREATE TABLE IF NOT EXISTS test_table (id integer primary key, data text, data_num integer)');
+                }, function (err) { ok(false, err.message) }, function () {
+                    start();
+                    func(db);
+                });
+            };
+
+            test("all columns should be included in result set (including 'null' columns)", function () {
+                withTestTable(function (db) {
+                    stop();
+                    db.transaction(function (tx) {
+                        tx.executeSql("insert into test_table (data, data_num) VALUES (?,?)", ["test", null], function (tx, res) {
+                            // equal(res.rowsAffected, 1, "row inserted"); // issue with Android version
+                            tx.executeSql("select * from test_table", [], function (tx, res) {
+                                var row = res.rows.item(0);
+                                deepEqual(row, { id: 1, data: "test", data_num: null }, "all columns should be included in result set.");
+                                start();
+                            });
+                        });
+                    });
+                });
+            });
+
+            test("pragma & multiple databases", function () {
+                var db = window.sqlitePlugin.openDatabase("DB1", "1.0", "Demo", -1);
+
+                var db2 = window.sqlitePlugin.openDatabase("DB2", "1.0", "Demo", -1);
+
+                db.transaction(function (tx) {
+                    tx.executeSql('DROP TABLE IF EXISTS test_table');
+                    tx.executeSql('CREATE TABLE IF NOT EXISTS test_table (id integer primary key, data text, data_num integer)', [], function () {
+                        console.log("test_table created");
+                    });
+
+                    stop();
+                    db.executeSql("pragma table_info (test_table);", [], function (res) {
+                        start();
+                        console.log("PRAGMA res: " + JSON.stringify(res));
+                    });
+                });
+
+                stop(2);
+                db2.transaction(function (tx) {
+                    tx.executeSql('DROP TABLE IF EXISTS tt2');
+                    tx.executeSql('CREATE TABLE IF NOT EXISTS tt2 (id2 integer primary key, data2 text, data_num2 integer)', [], function () {
+                        console.log("tt2 created");
+                    });
+
+                    db.executeSql("pragma table_info (test_table);", [], function (res) {
+                        start();
+                        console.log("PRAGMA (db) res: " + JSON.stringify(res));
+                        equal(res[0].name, "id", "DB1 table key field name");
+                        equal(res[1].name, "data", "DB1 table text field name");
+                        equal(res[2].name, "data_num", "DB1 table number field name");
+                    });
+
+                    db2.executeSql("pragma table_info (tt2);", [], function (res) {
+                        start();
+                        console.log("PRAGMA (tt2) res: " + JSON.stringify(res));
+                        equal(res[0].name, "id2", "DB2 table key field name");
+                        equal(res[1].name, "data2", "DB2 table text field name");
+                        equal(res[2].name, "data_num2", "DB2 table number field name");
+                    });
+                });
+
+            });
+
+        }
+
+    </script>
+
+  </head>
+  <body>
+    <div id="qunit"></div>
+  </body>
 </html>
