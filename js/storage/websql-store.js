@@ -1,13 +1,5 @@
 var WebSqlStore = function(successCallback, errorCallback) {
 
-    this.initialize = function () {
-        document.addEventListener("deviceready", onDeviceReady, false);
-    };
-
-    this.onDeviceReady = function () {
-        this.initializeDatabase(successCallback, errorCallback);
-    };
-
     this.initializeDatabase = function(successCallback, errorCallback) {
         var self = this;
         this.db = window.sqlitePlugin.openDatabase("EmployeeDB", "1.0", "Employee Demo DB", 200000);
@@ -128,6 +120,6 @@ var WebSqlStore = function(successCallback, errorCallback) {
         );
     };
 
-    this.initialize();
+    this.initializeDatabase(successCallback, errorCallback);
 
 }
